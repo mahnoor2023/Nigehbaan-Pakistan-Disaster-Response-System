@@ -1,6 +1,7 @@
 "use client";
 import { useSyncExternalStore } from "react";
 import { km } from "./geo";
+import { clampOccupancy } from "./shelterCapacity";
 import type { FieldReport, Verification, WaterLevel } from "./types";
 
 // Tiny shared store backed by localStorage (no backend). Other browser tabs update live through the `storage` event,
@@ -80,6 +81,9 @@ export const actions = {
     const verifications = Object.fromEntries(Object.entries(state.verifications).map(([k, x]) => [k, { ...x, synced: true }]));
     set({ ...state, reports: state.reports.map((r) => ({ ...r, synced: true })), verifications });
   },
-  setOcc: (id: string, n: number) => set({ ...state, shelterOcc: { ...state.shelterOcc, [id]: Math.max(0, Math.round(n)) } }),
+  setOcc: (id: string, n: number, capacity: number) => set({
+    ...state,
+    shelterOcc: { ...state.shelterOcc, [id]: clampOccupancy(n, capacity) },
+  }),
   resetDemo: () => set({ ...EMPTY, area: state.area }),
 };

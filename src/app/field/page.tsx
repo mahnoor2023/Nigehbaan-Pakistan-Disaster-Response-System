@@ -23,7 +23,7 @@ export default function FieldPage() {
   if (m.loading || m.error || !m.area) return <PageShell title="Field App"><Loading error={m.error} /></PageShell>;
   const area = m.area;
   const { store } = m;
-  const known = m.hs.filter((h) => h.source !== "report").sort((a, b) => (a.id < b.id ? -1 : 1));
+  const known = m.hs.filter((h) => h.source !== "field_report").sort((a, b) => (a.id < b.id ? -1 : 1));
   const pendingReports = store.reports.filter((r) => !r.synced && r.area === area.id);
   const pendingVer = Object.values(store.verifications).filter((v) => !v.synced).length;
   const tasks = m.scored.filter((s) => s.score >= 20 && !store.verifications[s.h.id] && !s.hasReport).slice(0, 8);
@@ -62,7 +62,7 @@ export default function FieldPage() {
             <label className="block text-sm">Which household?
               <select value={hid} onChange={(e) => pickHousehold(e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
                 <option value="">Not on the list (new household)</option>
-                {known.map((h) => <option key={h.id} value={h.id}>{h.id}{h.source === "satellite" ? " (unlisted)" : ""}</option>)}
+                {known.map((h) => <option key={h.id} value={h.id}>{h.id}{h.source === "simulated_unlisted" ? " (simulated unlisted)" : ""}</option>)}
               </select>
             </label>
             {!hid && (
@@ -111,7 +111,7 @@ export default function FieldPage() {
             {tasks.map((s) => (
               <li key={s.h.id} className="flex items-center gap-2 py-2">
                 <TierBadge tier={s.tier} score={s.score} />
-                <div className="min-w-0 flex-1 text-sm"><b>{s.h.id}</b>{s.h.source !== "survey" && <span className="ml-1 text-xs text-amber-700">unlisted</span>}<div className="truncate text-xs text-slate-500">{s.reasons[0]}</div></div>
+                <div className="min-w-0 flex-1 text-sm"><b>{s.h.id}</b>{s.h.source !== "simulated_listed" && <span className="ml-1 text-xs text-amber-700">demo-unlisted</span>}<div className="truncate text-xs text-slate-500">{s.reasons[0]}</div></div>
                 <button onClick={() => actions.setVerification(s.h.id, "verified")} className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white">Needs help</button>
                 <button onClick={() => actions.setVerification(s.h.id, "not_found")} className="rounded bg-slate-500 px-2 py-1 text-xs font-medium text-white">Nobody</button>
               </li>

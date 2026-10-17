@@ -1,4 +1,4 @@
-export type Source = "survey" | "satellite" | "report";
+export type Source = "simulated_listed" | "simulated_unlisted" | "field_report";
 
 export type Household = {
   id: string;
@@ -19,7 +19,7 @@ export type Household = {
   phone_signal_est: string | null;
   has_smartphone_est: string | null;
   income_band_est: string | null;
-  /** survey = on the official list, satellite = unlisted (found from building footprints), report = found by a field report */
+  /** Demo-list membership is simulated; field_report records are browser-local volunteer entries. */
   source: Source;
 };
 

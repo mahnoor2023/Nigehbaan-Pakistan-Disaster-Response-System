@@ -2,7 +2,7 @@
 
 Flood-response prioritization for **CODE//CONNECT'26** (Problem 01: Disaster Response).
 
-> During floods, warnings don't reach everyone. Nigehbaan finds the households most at risk, including ones missing from official lists, and matches scarce boats, vehicles and shelters to them in an order responders can read and trust.
+> During floods, warnings don't reach everyone. Nigehbaan demonstrates how households at risk could be prioritized and matched with scarce boats, vehicles and shelters in an order responders can read and inspect.
 
 ## What works
 
@@ -42,8 +42,10 @@ npm run data
 
 Add or move zones by editing `data/areas.json` (`bbox` = south, west, north, east).
 
-**Real:** OSM building locations + footprints, Copernicus DEM ground height (Open-Meteo), distance to nearest river/nala/drain (OSM), shelters (OSM schools, hospitals, clinics, community centres, mosques).
-**Simulated:** who lives in each building (`*_est` columns), the 20% "unlisted" flag, shelter capacities (by building type) and the rescue fleet. Demographics are modelled, not real people.
+**External geospatial inputs (not field-verified):** OSM building locations + footprints, Copernicus DEM ground height (Open-Meteo), distance to nearest river/nala/drain (OSM), and candidate shelter locations (OSM amenities).
+**Synthetic scenario data:** who lives in each building (`*_est` columns), demo-list membership, shelter capacities (by building type), and the rescue fleet. These are not surveys, satellite detections, official warning-list records, verified availability, or real people.
+
+Karachi-wide expansion requirements are documented in [`docs/KARACHI_EXPANSION.md`](docs/KARACHI_EXPANSION.md).
 
 ## Layout
 

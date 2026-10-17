@@ -20,7 +20,7 @@ export default function CommandPage() {
   const { scored, plan, store } = m;
   const urgent = scored.filter((s) => s.score >= 25);
   const critical = scored.filter((s) => s.tier === "critical").length;
-  const hiddenUrgent = urgent.filter((s) => s.h.source !== "survey").length;
+  const hiddenUrgent = urgent.filter((s) => s.h.source !== "simulated_listed").length;
   const sel = scored.find((s) => s.h.id === selectedId) ?? null;
   const selAssign = plan.assignments.find((a) => a.s.h.id === selectedId) ?? null;
   const selUnserved = plan.unserved.find((u) => u.s.h.id === selectedId) ?? null;
@@ -45,7 +45,7 @@ export default function CommandPage() {
 
         <div className="grid grid-cols-2 gap-2">
           <Stat label="High / critical" value={urgent.length} sub={`${critical} critical`} tone="red" />
-          <Stat label="Unlisted but urgent" value={hiddenUrgent} sub="found by satellite / reports" tone="amber" />
+          <Stat label="Demo-unlisted but urgent" value={hiddenUrgent} sub="simulated status / field reports" tone="amber" />
           <Stat label="People reached" value={`${plan.peopleServed}`} sub={`of ${plan.peopleAtRisk} at risk`} tone="green" />
           <Stat label="Unserved" value={plan.unserved.length} sub={boatShort ? `~${boatShort} more boats needed` : "households"} tone="blue" />
         </div>
@@ -56,7 +56,7 @@ export default function CommandPage() {
           </label>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-slate-600">
             {tiers.map((t) => <span key={t}><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: TIER_COLOR[t] }} />{t}</span>)}
-            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-slate-900 align-middle" />unlisted</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-slate-900 align-middle" />simulated unlisted</span>
             <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-violet-600 align-middle" />field report</span>
           </div>
           {Object.keys(reasons).length > 0 && (
@@ -69,7 +69,7 @@ export default function CommandPage() {
         {sel && (
           <section className="rounded-lg border-2 border-sky-400 bg-white p-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-slate-900">{sel.h.id} <span className="text-xs font-normal text-slate-500">{sel.h.source === "survey" ? "sample list" : sel.h.source === "satellite" ? "UNLISTED (satellite)" : "field report"}</span></h2>
+              <h2 className="font-semibold text-slate-900">{sel.h.id} <span className="text-xs font-normal text-slate-500">{sel.h.source === "simulated_listed" ? "SIMULATED LISTED" : sel.h.source === "simulated_unlisted" ? "SIMULATED UNLISTED" : "browser-local field report"}</span></h2>
               <TierBadge tier={sel.tier} score={sel.score} />
             </div>
             <ul className="mt-2 list-disc space-y-0.5 pl-4 text-sm text-slate-700">{sel.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
