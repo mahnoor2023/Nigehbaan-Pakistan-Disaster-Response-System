@@ -1,0 +1,9 @@
+export type City = {name:string;region:string;lat:number;lon:number};
+export const cities:City[]=[
+{name:"Karachi",region:"Sindh",lat:24.8607,lon:67.0011},{name:"Hyderabad",region:"Sindh",lat:25.396,lon:68.3578},{name:"Sukkur",region:"Sindh",lat:27.7052,lon:68.8574},
+{name:"Lahore",region:"Punjab",lat:31.5204,lon:74.3587},{name:"Multan",region:"Punjab",lat:30.1575,lon:71.5249},{name:"Rawalpindi",region:"Punjab",lat:33.5651,lon:73.0169},
+{name:"Peshawar",region:"Khyber Pakhtunkhwa",lat:34.0151,lon:71.5249},{name:"Swat (Mingora)",region:"Khyber Pakhtunkhwa",lat:34.7717,lon:72.3602},
+{name:"Quetta",region:"Balochistan",lat:30.1798,lon:66.975},{name:"Gwadar",region:"Balochistan",lat:25.1264,lon:62.3225},
+{name:"Islamabad",region:"Islamabad Capital Territory",lat:33.6844,lon:73.0479},{name:"Gilgit",region:"Gilgit-Baltistan",lat:35.9208,lon:74.308},{name:"Muzaffarabad",region:"Azad Kashmir",lat:34.37,lon:73.471}];
+export type Weather={city:City;rain:number;precipitation:number;temperature:number;wind:number;time:string;dailyRain:number[];dailyDates:string[]};
+export async function fetchWeather(city:City,signal?:AbortSignal):Promise<Weather>{const params=new URLSearchParams({latitude:String(city.lat),longitude:String(city.lon),current:"temperature_2m,precipitation,rain,wind_speed_10m",daily:"precipitation_sum",forecast_days:"5",timezone:"Asia/Karachi"});const response=await fetch(`https://api.open-meteo.com/v1/forecast?${params}`,{signal,cache:"no-store"});if(!response.ok)throw Error(`Weather service ${response.status}`);const data=await response.json();if(typeof data?.current?.temperature_2m!=="number"||!Array.isArray(data?.daily?.precipitation_sum))throw Error("Incomplete weather response");return{city,rain:data.current.rain??0,precipitation:data.current.precipitation??0,temperature:data.current.temperature_2m,wind:data.current.wind_speed_10m??0,time:data.current.time,dailyRain:data.daily.precipitation_sum,dailyDates:data.daily.time};}
