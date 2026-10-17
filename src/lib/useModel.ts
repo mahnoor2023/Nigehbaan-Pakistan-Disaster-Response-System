@@ -33,7 +33,7 @@ export function useModel() {
         extra.push({
           id: r.id, area: r.area, lat: r.lat, lon: r.lon, ground_height_m: null, dist_to_waterway_m: null, flood_history: null, night_light: null,
           building_area_m2: null, people_count_est: r.people, oldest_age_est: null, lives_alone_est: null, has_disability_est: r.needsMedical ? "yes" : null,
-          chronic_illness_est: null, floor_est: null, phone_signal_est: null, has_smartphone_est: null, income_band_est: null, source: "report",
+          chronic_illness_est: null, floor_est: null, phone_signal_est: null, has_smartphone_est: null, income_band_est: null, source: "field_report",
         });
         evidence.set(r.id, ev);
       }

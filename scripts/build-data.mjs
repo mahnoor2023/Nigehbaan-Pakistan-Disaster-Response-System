@@ -1,7 +1,8 @@
 // Converts data/areas/<id>/{households,shelters}.csv (+ data/areas.json) into public/data/*.json
 // Usage: npm run data
 // - empty cells -> null (the app must never crash on missing values)
-// - ~20% of households per area are marked source="satellite" (hidden/unlisted), seeded => deterministic. SIMULATED.
+// - ~20% of households per area are marked source="simulated_unlisted", seeded => deterministic.
+//   Both list states are synthetic scenario labels; neither claims survey or satellite provenance.
 // - shelter capacity is an ESTIMATE by kind (unless the CSV has a capacity_est column)
 // - rescue fleet (boats/trucks/ambulances) is SIMULATED and deliberately scarce
 import fs from "node:fs";
@@ -13,7 +14,7 @@ const OUT = path.join(ROOT, "public", "data");
 fs.mkdirSync(OUT, { recursive: true });
 
 const SEED = 20261017;
-const SATELLITE_SHARE = 0.2;
+const SIMULATED_UNLISTED_SHARE = 0.2;
 
 function mulberry32(a) {
   return function () {
@@ -71,7 +72,7 @@ for (const cfg of areaCfg) {
   const rand = mulberry32(SEED + hash(cfg.id));
   const idx = rows.map((_, i) => i);
   for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
-  const sat = new Set(idx.slice(0, Math.round(rows.length * SATELLITE_SHARE)));
+  const simulatedUnlisted = new Set(idx.slice(0, Math.round(rows.length * SIMULATED_UNLISTED_SHARE)));
   let hh = rows.map((r, i) => ({
     id: r.id, area: cfg.id,
     lat: num(r.lat), lon: num(r.lon),
@@ -89,7 +90,7 @@ for (const cfg of areaCfg) {
     phone_signal_est: str(r.phone_signal_est),
     has_smartphone_est: str(r.has_smartphone_est),
     income_band_est: str(r.income_band_est),
-    source: sat.has(i) ? "satellite" : "survey",
+    source: simulatedUnlisted.has(i) ? "simulated_unlisted" : "simulated_listed",
   })).filter((h) => h.id && h.lat != null && h.lon != null);
 
   // shelters
@@ -133,7 +134,7 @@ for (const cfg of areaCfg) {
 
   areas.push({ id: cfg.id, label: cfg.label, center: [Number(c[0].toFixed(5)), Number(c[1].toFixed(5))], zoom: 14, note: cfg.note ?? null, households: hh.length });
   households.push(...hh); shelters.push(...sh);
-  console.log(`${cfg.id}: ${hh.length} households (${hh.filter((h) => h.source === "satellite").length} unlisted), ${sh.length} shelters`);
+  console.log(`${cfg.id}: ${hh.length} households (${hh.filter((h) => h.source === "simulated_unlisted").length} simulated unlisted), ${sh.length} shelters`);
 }
 
 if (!areas.length) { console.error("No area data found in data/areas/*"); process.exit(1); }

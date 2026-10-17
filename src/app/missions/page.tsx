@@ -25,18 +25,28 @@ export default function MissionsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
-      if (Array.isArray(saved)) setMissions(saved);
-    } catch { /* invalid local demo data */ }
-    const incoming = new URLSearchParams(window.location.search).get("household");
-    if (incoming) setHousehold(incoming.slice(0, 80));
-    setReady(true);
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
+        if (Array.isArray(saved)) setMissions(saved);
+      } catch { /* invalid local demo data */ }
+      const incoming = new URLSearchParams(window.location.search).get("household");
+      if (incoming) setHousehold(incoming.slice(0, 80));
+      setReady(true);
+    });
+    return () => { active = false; };
   }, []);
   useEffect(() => {
     if (!ready) return;
-    try { localStorage.setItem(KEY, JSON.stringify(missions)); setError(""); }
-    catch { setError("Could not save missions on this device. Check browser storage."); }
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try { localStorage.setItem(KEY, JSON.stringify(missions)); setError(""); }
+      catch { setError("Could not save missions on this device. Check browser storage."); }
+    });
+    return () => { active = false; };
   }, [missions, ready]);
 
   function createMission(e: React.FormEvent<HTMLFormElement>) {

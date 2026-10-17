@@ -15,7 +15,7 @@ export default function Page() {
   const compare = [
     { name: "Risk covered (%)", "First come, first served": pct(baseline.riskCovered, baseline.riskTotal), Nigehbaan: pct(plan.riskCovered, plan.riskTotal) },
     { name: "High/critical reached", "First come, first served": baseline.assignments.filter((a) => a.s.score >= 25).length, Nigehbaan: plan.assignments.filter((a) => a.s.score >= 25).length },
-    { name: "Unlisted reached", "First come, first served": baseline.assignments.filter((a) => a.s.h.source !== "survey").length, Nigehbaan: plan.assignments.filter((a) => a.s.h.source !== "survey").length },
+    { name: "Demo-unlisted reached", "First come, first served": baseline.assignments.filter((a) => a.s.h.source !== "simulated_listed").length, Nigehbaan: plan.assignments.filter((a) => a.s.h.source !== "simulated_listed").length },
   ];
   const types = ["boat", "truck", "ambulance"] as const;
   const wanted = [...plan.assignments.map((a) => a.s), ...plan.unserved.map((u) => u.s)];
@@ -32,10 +32,10 @@ export default function Page() {
         <Stat label="Risk covered" value={`${pct(plan.riskCovered, plan.riskTotal)}%`} sub={`vs ${pct(baseline.riskCovered, baseline.riskTotal)}% first-come-first-served`} tone="green" />
         <Stat label="People reached" value={plan.peopleServed} sub={`of ${plan.peopleAtRisk} at risk`} tone="blue" />
         <Stat label="Unserved households" value={plan.unserved.length} tone="red" />
-        <Stat label="Unlisted reached" value={plan.assignments.filter((a) => a.s.h.source !== "survey").length} sub="invisible to the official list" tone="amber" />
+        <Stat label="Demo-unlisted reached" value={plan.assignments.filter((a) => a.s.h.source !== "simulated_listed").length} sub="simulated as absent from the demo list" tone="amber" />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Nigehbaan vs first-come-first-served (official list order)">
+        <Card title="Nigehbaan vs first-come-first-served (simulated demo-list order)">
           <ResponsiveContainer width="100%" height="100%"><BarChart data={compare}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" fontSize={12} /><YAxis fontSize={12} /><Tooltip /><Legend />
             <Bar dataKey="First come, first served" fill="#94a3b8" /><Bar dataKey="Nigehbaan" fill="#0284c7" /></BarChart></ResponsiveContainer>
         </Card>

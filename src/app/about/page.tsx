@@ -17,7 +17,7 @@ export default function Page() {
           <p><b>Priority = 100 × hazard × (0.3 + 0.7 × vulnerability).</b> Every number on screen comes with its top reasons.</p>
           <ul className="list-disc pl-5">
             <li><b>Hazard:</b> distance to nearest nala/river, low ground, ground floor, pushed through the flood-severity slider. If a volunteer reports water, the report overrides the model.</li>
-            <li><b>Vulnerability:</b> 50% cannot self-evacuate (age, disability, illness, living alone), 20% cannot be warned (no smartphone/signal, not on the official list), 30% poverty.</li>
+            <li><b>Vulnerability:</b> 50% cannot self-evacuate (age, disability, illness, living alone), 20% cannot be warned (no smartphone/signal, simulated as absent from the demo list), 30% poverty.</li>
             <li><b>Dispatch:</b> households in priority order; each gets a shelter with free beds (medical cases prefer hospitals/clinics) and the nearest suitable vehicle with free seats, which then continues its route from there.</li>
           </ul>
         </Box>
@@ -25,7 +25,7 @@ export default function Page() {
         <Box title="When data is missing or wrong">
           <ul className="list-disc pl-5">
             <li>An empty field never crashes anything. It gets a neutral guess, is listed as &quot;guessed&quot;, and lowers the household&apos;s <b>confidence</b> bar.</li>
-            <li>Households found only from satellite footprints are flagged <b>unverified</b> and their confidence is cut; the Field App lists them as tasks.</li>
+            <li>Records simulated as absent from the demo list are flagged <b>unverified</b> and their confidence is cut; this is a scenario assumption, not evidence from a satellite or official register.</li>
             <li>A volunteer&apos;s check replaces the model: &quot;nobody found&quot; drops priority; a water report raises it. Duplicate reports (30 m, 10 min) are merged, not double counted.</li>
             <li>Network down: the Field App queues reports on the phone and sends them when the network returns (try &quot;Simulate outage&quot;).</li>
             <li>No terrain data for a household: hazard falls back to a mid value, never zero, so it is not silently ignored.</li>
@@ -34,8 +34,8 @@ export default function Page() {
 
         <Box title="What is real and what is simulated">
           <ul className="list-disc pl-5">
-            <li><b>Real:</b> building locations and footprints (OpenStreetMap), ground height (satellite elevation model), distance to nala/river and shelters (OpenStreetMap).</li>
-            <li><b>Simulated:</b> who lives in each building (age, illness, income band, phone) is modelled, not real people. The 20% &quot;unlisted&quot; flag, the shelter capacities, and the rescue fleet are also simulated assumptions. Columns ending in <code>_est</code> say so.</li>
+            <li><b>External geospatial inputs:</b> building locations and footprints (OpenStreetMap), ground height (Copernicus DEM via Open-Meteo), distance to nala/river, and candidate shelter locations (OpenStreetMap). These inputs are not field-verified for emergency use.</li>
+            <li><b>Synthetic scenario data:</b> who lives in each building (age, illness, income band, phone), demo-list membership, shelter capacities, and the rescue fleet. These are not survey results, satellite detections, official warning-list records, or live availability.</li>
           </ul>
         </Box>
 

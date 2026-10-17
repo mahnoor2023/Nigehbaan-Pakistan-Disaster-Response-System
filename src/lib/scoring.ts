@@ -8,7 +8,7 @@ export const TIER_LABEL: Record<Tier, string> = { critical: "Critical", high: "H
 export const WATER_LABEL: Record<WaterLevel, string> = { none: "No water", ankle: "Ankle", knee: "Knee", waist: "Waist", above: "Above head" };
 const WATER_HAZARD: Record<WaterLevel, number> = { none: 0.05, ankle: 0.45, knee: 0.65, waist: 0.85, above: 1 };
 
-/** Ground truth from a field report. Overrides the model for that household. */
+/** Browser-local field evidence. Overrides the scenario model for that household. */
 export type Evidence = { water: WaterLevel; people: number; needsMedical: boolean } | null;
 
 export type Scored = {
@@ -47,7 +47,7 @@ export function tierOf(score: number): Tier {
  *  hazard  = exposure (distance to nala/river, low ground, ground floor) pushed through the flood-severity slider,
  *            or the water level a volunteer actually reported
  *  vuln    = 0.5 x cannot-self-evacuate (age, disability, illness, alone)
- *          + 0.2 x cannot-be-warned (no smartphone / no signal / not on official list)
+ *          + 0.2 x cannot-be-warned (no smartphone / no signal / simulated as absent from the demo list)
  *          + 0.3 x poverty
  * Missing fields never crash: they get a neutral guess, are listed in `missing`, and lower `confidence`.
  */
@@ -93,7 +93,10 @@ export function scoreHousehold(h: Household, st: AreaStats, level: number, ev: E
 
   let info = h.has_smartphone_est == null && h.phone_signal_est == null ? 0.25 : (h.has_smartphone_est === "no" ? 0.5 : 0) + (h.phone_signal_est === "no" ? 0.5 : 0);
   if (h.has_smartphone_est === "no" || h.phone_signal_est === "no") why.push({ w: 5 + info * 5, t: h.phone_signal_est === "no" ? "No phone signal: cannot get alerts" : "No smartphone: cannot get alerts" });
-  if (h.source !== "survey") { info = Math.min(1, info + 0.25); why.push({ w: 6, t: h.source === "report" ? "Found by field report" : "Not on the official warning list" }); }
+  if (h.source !== "simulated_listed") {
+    info = Math.min(1, info + 0.25);
+    why.push({ w: 6, t: h.source === "field_report" ? "Added by a browser-local field report" : "Simulated as absent from the demo list" });
+  }
 
   let pov = 0.4;
   if (h.income_band_est === "low") pov = 1;
@@ -110,7 +113,7 @@ export function scoreHousehold(h: Household, st: AreaStats, level: number, ev: E
   // ---- confidence ----
   const keys = 8;
   let confidence = (keys - Math.min(missing.length, keys)) / keys;
-  if (h.source !== "survey" && ver !== "verified") confidence *= 0.6;
+  if (h.source !== "simulated_listed" && ver !== "verified") confidence *= 0.6;
   if (ev || ver === "verified") confidence = Math.max(confidence, 0.9);
 
   const medical = !!ev?.needsMedical || h.has_disability_est === "yes" || (age != null && age >= 75) || chronic === "heart";
@@ -122,6 +125,6 @@ export function scoreHousehold(h: Household, st: AreaStats, level: number, ev: E
     h, score, tier: tierOf(score), hazard, vuln, confidence, need, people,
     reasons: why.sort((a, b) => b.w - a.w).slice(0, 3).map((x) => x.t),
     missing, verification: ver, hasReport: !!ev,
-    unverified: h.source !== "survey" && ver !== "verified" && !ev,
+    unverified: h.source !== "simulated_listed" && ver !== "verified" && !ev,
   };
 }

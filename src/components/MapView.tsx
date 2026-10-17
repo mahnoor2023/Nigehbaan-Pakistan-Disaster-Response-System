@@ -66,13 +66,13 @@ export default function MapView({ area, scored, shelters, resources, plan, showP
       )}
 
       {scored.map((s) => {
-        const hidden = s.h.source !== "survey";
+        const hidden = s.h.source !== "simulated_listed";
         const served = showPlan && servedIds.has(s.h.id);
         return (
           <CircleMarker key={s.h.id} center={[s.h.lat, s.h.lon]} radius={5 + Math.min(s.score, 60) / 8}
             eventHandlers={{ click: () => onSelect(s.h.id) }}
             pathOptions={{
-              color: s.h.source === "report" ? "#7c3aed" : hidden ? "#111827" : "#ffffff",
+              color: s.h.source === "field_report" ? "#7c3aed" : hidden ? "#111827" : "#ffffff",
               weight: hidden ? 2.5 : 1, fillColor: TIER_COLOR[s.tier], fillOpacity: showPlan && !served && s.score >= 15 ? 0.45 : 0.9,
               dashArray: showPlan && s.score >= 15 && !served ? "2 3" : undefined,
             }}>

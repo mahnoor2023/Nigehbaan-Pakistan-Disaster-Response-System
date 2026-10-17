@@ -4,9 +4,10 @@ import Link from "next/link";
 import {cities,fetchWeather,type Weather} from "@/lib/liveWeather";
 const fmt=(v:number)=>Number.isFinite(v)?v.toFixed(1):"—";
 export default function Intelligence(){
- const [cityName,setCityName]=useState("Karachi");const [data,setData]=useState<Weather|null>(null);const [error,setError]=useState("");const [loading,setLoading]=useState(true);const [updated,setUpdated]=useState("");
+ const [cityName,setCityName]=useState("Karachi");const [forecast,setForecast]=useState<{cityName:string;data:Weather|null;error:string;updated:string}>({cityName:"Karachi",data:null,error:"",updated:""});
  const city=useMemo(()=>cities.find(c=>c.name===cityName)??cities[0],[cityName]);
- useEffect(()=>{const controller=new AbortController();setLoading(true);setError("");setData(null);fetchWeather(city,controller.signal).then(w=>{setData(w);setUpdated(new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"}));}).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:"Forecast unavailable")}).finally(()=>{if(!controller.signal.aborted)setLoading(false)});return()=>controller.abort()},[city]);
+ useEffect(()=>{const controller=new AbortController();fetchWeather(city,controller.signal).then(data=>{setForecast({cityName:city.name,data,error:"",updated:new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"})});}).catch(e=>{if(!controller.signal.aborted)setForecast({cityName:city.name,data:null,error:e instanceof Error?e.message:"Forecast unavailable",updated:""})});return()=>controller.abort()},[city]);
+ const current=forecast.cityName===cityName;const data=current?forecast.data:null;const error=current?forecast.error:"";const updated=current?forecast.updated:"";const loading=!current||(!data&&!error);
  const fiveDayTotal=data?.dailyRain.reduce((a,b)=>a+(b??0),0)??0;const maxDay=Math.max(1,...(data?.dailyRain??[1]));
  return <main className="intel-page"><div className="intel-shell">
  <div className="intel-eyebrow"><span className="intel-pulse"/> NIGE HBAAN / NATIONAL INTELLIGENCE <span className="intel-pill">PUBLIC WEATHER FEED</span></div>

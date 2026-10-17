@@ -9,7 +9,7 @@ export default function Page() {
   const m = useModel();
   const [q, setQ] = useState("");
   const [tier, setTier] = useState<Tier | "all">("all");
-  const [src, setSrc] = useState<"all" | "survey" | "satellite" | "report">("all");
+  const [src, setSrc] = useState<"all" | "simulated_listed" | "simulated_unlisted" | "field_report">("all");
   const [limit, setLimit] = useState(100);
 
   if (m.loading || m.error) return <PageShell title="Households"><Loading error={m.error} /></PageShell>;
@@ -23,7 +23,7 @@ export default function Page() {
           <option value="all">All tiers</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
         </select>
         <select value={src} onChange={(e) => setSrc(e.target.value as typeof src)} className="rounded border border-slate-300 px-2 py-1">
-          <option value="all">All sources</option><option value="survey">Official list</option><option value="satellite">Unlisted (satellite)</option><option value="report">Field report</option>
+          <option value="all">All statuses</option><option value="simulated_listed">Simulated listed</option><option value="simulated_unlisted">Simulated unlisted</option><option value="field_report">Browser-local field report</option>
         </select>
         <span className="ml-auto self-center text-xs text-slate-500">{rows.length} households</span>
       </div>
@@ -38,7 +38,7 @@ export default function Page() {
                 <td className="px-3 py-1.5 text-slate-400">{i + 1}</td>
                 <td className="px-3 py-1.5 font-medium">{s.h.id}</td>
                 <td className="px-3 py-1.5"><TierBadge tier={s.tier} score={s.score} /></td>
-                <td className="px-3 py-1.5 text-xs">{s.h.source === "survey" ? "official" : s.h.source === "satellite" ? "unlisted" : "report"}</td>
+                <td className="px-3 py-1.5 text-xs">{s.h.source === "simulated_listed" ? "simulated listed" : s.h.source === "simulated_unlisted" ? "simulated unlisted" : "field report"}</td>
                 <td className="px-3 py-1.5">{s.people}</td>
                 <td className="px-3 py-1.5">{s.h.oldest_age_est ?? <span className="text-slate-400">?</span>}</td>
                 <td className="px-3 py-1.5">{s.h.ground_height_m ?? <span className="text-slate-400">?</span>}</td>
