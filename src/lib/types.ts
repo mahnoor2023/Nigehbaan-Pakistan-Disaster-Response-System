@@ -3,8 +3,12 @@ export type Source = "simulated_listed" | "simulated_unlisted" | "field_report";
 export type Household = {
   id: string;
   area: string;
-  lat: number;
-  lon: number;
+  lat: number | null;
+  lon: number | null;
+  /** Abstract, synthetic-only coordinates used for demo routing when no map coordinates are available. */
+  scenario_x_km?: number | null;
+  scenario_y_km?: number | null;
+  scenario_exposure_est?: number | null;
   ground_height_m: number | null;
   dist_to_waterway_m: number | null;
   flood_history: number | null;
@@ -28,17 +32,38 @@ export type Shelter = {
   area: string;
   name: string;
   kind: string | null;
-  lat: number;
-  lon: number;
+  lat: number | null;
+  lon: number | null;
+  scenario_x_km?: number | null;
+  scenario_y_km?: number | null;
   capacity: number;
   capacity_is_estimate: boolean;
   placeholder: boolean;
 };
 
 export type ResourceType = "boat" | "truck" | "ambulance";
-export type Resource = { id: string; area: string; type: ResourceType; label: string; capacity: number; lat: number; lon: number };
+export type Resource = { id: string; area: string; type: ResourceType; label: string; capacity: number; lat: number | null; lon: number | null; scenario_x_km?: number | null; scenario_y_km?: number | null };
 
-export type Area = { id: string; label: string; center: [number, number]; zoom: number; note: string | null; households: number };
+export type Area = {
+  id: string;
+  districtId?: string;
+  label: string;
+  center: [number, number] | null;
+  zoom: number;
+  note: string | null;
+  households: number;
+  mapMode?: "sourced_points" | "none";
+  dataDisclosure?: string;
+};
+
+export type ScenarioIncident = {
+  id: string;
+  area: string;
+  type: "urban_flooding" | "access_disruption" | "medical_cluster";
+  severity: "moderate" | "high" | "critical";
+  label: string;
+  synthetic: true;
+};
 
 export type WaterLevel = "none" | "ankle" | "knee" | "waist" | "above";
 export type Verification = "verified" | "not_found";

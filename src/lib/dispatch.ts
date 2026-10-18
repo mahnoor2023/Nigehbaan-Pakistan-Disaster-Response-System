@@ -1,4 +1,5 @@
-import { km } from "./geo.ts";
+import { distanceKm } from "./geo.ts";
+import { clampOccupancy } from "./shelterCapacity.ts";
 import type { Need, Scored } from "./scoring";
 import type { Resource, ResourceType, Shelter } from "./types";
 
@@ -6,7 +7,7 @@ export type Assignment = {
   s: Scored; resource: Resource; shelter: Shelter | null;
   legKm: number; etaMin: number; load: number; why: string;
 };
-export type Unserved = { s: Scored; reason: string };
+export type Unserved = { s: Scored; reason: string; people: number };
 export type Route = { resource: Resource; stops: Assignment[]; totalKm: number; carried: number };
 export type Plan = {
   assignments: Assignment[]; unserved: Unserved[]; routes: Route[];
@@ -36,9 +37,16 @@ export function planDispatch(
   if (order === "priority") cand = [...cand].sort((a, b) => b.score - a.score);
   else cand = scored.filter((s) => s.h.source === "simulated_listed").sort((a, b) => (a.h.id < b.h.id ? -1 : 1)); // baseline: simulated demo list, first come first served
 
-  const fleet = resources.map((r) => ({ r, pos: { lat: r.lat, lon: r.lon }, left: r.capacity, km: 0, stops: [] as Assignment[], carried: 0 }));
+  const fleet = resources.map((r) => ({
+    r,
+    pos: { lat: r.lat, lon: r.lon, scenario_x_km: r.scenario_x_km, scenario_y_km: r.scenario_y_km },
+    left: r.capacity,
+    km: 0,
+    stops: [] as Assignment[],
+    carried: 0,
+  }));
   const free: Record<string, number> = {};
-  for (const sh of shelters) free[sh.id] = Math.max(0, sh.capacity - (occupied[sh.id] ?? 0));
+  for (const sh of shelters) free[sh.id] = Math.max(0, sh.capacity - clampOccupancy(occupied[sh.id] ?? 0, sh.capacity));
   const load: Record<string, number> = {};
 
   const assignments: Assignment[] = [];
@@ -52,10 +60,10 @@ export function planDispatch(
     for (const sh of shelters) {
       if (free[sh.id] <= 0) continue;
       const medical = s.need === "ambulance";
-      const cost = km(s.h, sh) + (medical && !MEDICAL_KINDS.has(sh.kind ?? "") ? 3 : 0);
+      const cost = distanceKm(s.h, sh) + (medical && !MEDICAL_KINDS.has(sh.kind ?? "") ? 3 : 0);
       if (cost < bestCost) { best = sh; bestCost = cost; }
     }
-    if (!best) { unserved.push({ s, reason: "All shelters are full" }); continue; }
+    if (!best) { unserved.push({ s, reason: "All shelters are full", people: need }); continue; }
 
     // vehicle
     let pick: (typeof fleet)[number] | null = null;
@@ -63,18 +71,18 @@ export function planDispatch(
       let d = Infinity;
       for (const f of fleet) {
         if (f.r.type !== type || f.left < Math.min(need, f.r.capacity)) continue;
-        const dd = km(f.pos, s.h);
+        const dd = distanceKm(f.pos, s.h);
         if (dd < d) { d = dd; pick = f; }
       }
       if (pick) break;
     }
-    if (!pick) { unserved.push({ s, reason: `No ${s.need === "ambulance" ? "ambulance/boat/truck" : s.need === "boat" ? "boat" : "truck/boat"} with free seats` }); continue; }
+    if (!pick) { unserved.push({ s, reason: `No ${s.need === "ambulance" ? "ambulance/boat/truck" : s.need === "boat" ? "boat" : "truck/boat"} with free seats`, people: need }); continue; }
 
     const carried = Math.min(need, pick.left, free[best.id]);
-    const leg = km(pick.pos, s.h);
+    const leg = distanceKm(pick.pos, s.h);
     pick.km += leg;
     pick.left -= carried; pick.carried += carried;
-    pick.pos = { lat: s.h.lat, lon: s.h.lon };
+    pick.pos = { lat: s.h.lat, lon: s.h.lon, scenario_x_km: s.h.scenario_x_km, scenario_y_km: s.h.scenario_y_km };
     free[best.id] -= carried;
     load[best.id] = (load[best.id] ?? 0) + carried;
     const eta = Math.max(1, Math.round(((pick.km * DETOUR) / SPEED[pick.r.type]) * 60));
@@ -84,6 +92,7 @@ export function planDispatch(
     };
     pick.stops.push(a);
     assignments.push(a);
+    if (carried < need) unserved.push({ s, reason: "Only part of this household fits in the recommended allocation", people: need - carried });
   }
 
   const served = assignments.reduce((a, x) => a + x.load, 0);

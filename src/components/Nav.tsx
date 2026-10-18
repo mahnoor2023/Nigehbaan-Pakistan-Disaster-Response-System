@@ -1,14 +1,62 @@
 "use client";
+
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { actions, useStore } from "@/lib/store";
-import { useData } from "@/lib/useData";
-const links=[{href:"/intelligence",label:"Live Intelligence"},{href:"/coverage",label:"Pakistan Coverage"},{href:"/command",label:"Command"},{href:"/households",label:"Households"},{href:"/missions",label:"Missions"},{href:"/analytics",label:"Analytics"},{href:"/about",label:"About"}];
-const roles=[{href:"/command",label:"Command Center"},{href:"/field",label:"Field App"},{href:"/shelter",label:"Shelter Desk"}];
-export default function Nav(){const path=usePathname();const {areas}=useData();const store=useStore();const current=store.area??areas[0]?.id??"";const pending=store.reports.filter(r=>!r.synced).length+Object.values(store.verifications).filter(v=>!v.synced).length;
-return <header className="sticky top-0 z-[1000] border-b border-white/10 bg-[#091b32] text-white shadow-xl shadow-slate-900/10">
-<div className="mx-auto flex max-w-[110rem] flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-<Link href="/coverage" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-xl text-sky-300 ring-1 ring-sky-400/30">◈</span><span className="flex flex-col leading-tight"><strong className="text-lg tracking-tight">Nigehbaan <span className="font-normal text-sky-200">نگہبان</span></strong><span className="text-[10px] uppercase tracking-[.18em] text-slate-400">Disaster Response Platform</span></span></Link>
-<span className="hidden rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold text-emerald-200 md:inline">● PILOT · DEMO DATA</span>
-<div className="ml-auto flex flex-wrap items-center gap-2"><label className="flex items-center gap-2 text-xs text-slate-300"><span className="hidden sm:inline">Pilot area</span><select aria-label="Pilot area" value={current} onChange={e=>actions.setArea(e.target.value)} className="max-w-[185px] rounded-lg border border-slate-600 bg-slate-800 px-2 py-1.5 text-xs text-white">{areas.map(a=><option key={a.id} value={a.id}>{a.label} ({a.households})</option>)}</select></label>{store.offline&&<span className="rounded-lg bg-amber-400 px-2 py-1 text-xs font-bold text-slate-900">OFFLINE {pending?`· ${pending} queued`:""}</span>}</div>
-</div><div className="mx-auto flex max-w-[110rem] flex-wrap items-center justify-between gap-2 px-4 pb-3 sm:px-6"><nav aria-label="Main navigation" className="flex max-w-full gap-1 overflow-x-auto">{links.map(l=><Link key={l.href} href={l.href} aria-current={path===l.href?"page":undefined} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold sm:text-sm ${path===l.href?"bg-sky-500 text-white shadow-lg shadow-sky-500/20":"text-slate-300 hover:bg-white/10 hover:text-white"}`}>{l.label}</Link>)}</nav><nav aria-label="Workspaces" className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">{roles.map(r=><Link key={r.href} href={r.href} className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold ${path===r.href?"bg-white text-slate-900":"text-slate-300 hover:bg-white/10"}`}>{r.label}</Link>)}</nav></div></header>}
+import { demoAreaForDistrict, districtHasMapCoordinates, withDistrictQuery } from "@/lib/districtSelection";
+import { karachiDistricts } from "@/lib/geography";
+import { useStore } from "@/lib/store";
+import { useDistrictSelection } from "@/lib/useDistrictSelection";
+
+const primaryLinks = [
+  { href: "/intelligence", label: "Overview", icon: "◫" },
+  { href: "/coverage", label: "Coverage map", icon: "◇" },
+  { href: "/command", label: "Command center", icon: "▦" },
+  { href: "/households", label: "Households", icon: "⌂" },
+  { href: "/missions", label: "Rescue missions", icon: "↗" },
+  { href: "/shelter", label: "Shelters", icon: "▤" },
+];
+const secondaryLinks = [
+  { href: "/field", label: "Field app" },
+  { href: "/analytics", label: "Analytics" },
+  { href: "/about", label: "About" },
+];
+
+function routeHref(href: string, districtId: string) {
+  return href === "/about" ? href : withDistrictQuery(href, "", districtId);
+}
+
+export default function Nav() {
+  return <Suspense fallback={<header className="app-sidebar" aria-label="Loading navigation"><span className="app-brand">Nigehbaan</span></header>}><NavContent /></Suspense>;
+}
+
+function NavContent() {
+  const pathname = usePathname();
+  const { districtId, district, selectDistrict } = useDistrictSelection();
+  const store = useStore();
+  const areaId = demoAreaForDistrict(districtId);
+  const pending = store.reports.filter((report) => !report.synced && report.area === areaId).length;
+  const mapped = districtHasMapCoordinates(districtId);
+
+  return <header className="app-sidebar">
+    <a href="#main-content" className="skip-link">Skip to main content</a>
+    <div className="app-sidebar-head">
+      <Link href={routeHref("/intelligence", districtId)} className="app-brand" aria-label="Nigehbaan overview"><span className="app-brand-mark" aria-hidden="true">N</span><span><strong>Nigehbaan</strong><small>Disaster response demo</small></span></Link>
+      <span className="app-prototype">PROTOTYPE · NOT AN EMERGENCY SERVICE</span>
+    </div>
+
+    <div className="app-district">
+      <label htmlFor="app-district-select">Karachi district</label>
+      <select id="app-district-select" aria-label="Karachi district" value={districtId} onChange={(event) => selectDistrict(event.target.value)}>
+        {karachiDistricts.map((item) => <option key={item.id} value={item.id}>Karachi {item.name}</option>)}
+      </select>
+      <p>{mapped ? "Sourced points + synthetic exercise" : "Synthetic non-map exercise"}</p>
+    </div>
+
+    <nav className="app-primary-nav" aria-label="Primary navigation">
+      {primaryLinks.map((item) => <Link key={item.href} href={routeHref(item.href, districtId)} aria-current={pathname === item.href ? "page" : undefined} className="app-nav-link"><span aria-hidden="true" className="app-nav-icon">{item.icon}</span>{item.label}</Link>)}
+    </nav>
+    <details className="app-more"><summary>More tools</summary><nav aria-label="Additional navigation">{secondaryLinks.map((item) => <Link key={item.href} href={routeHref(item.href, districtId)} aria-current={pathname === item.href ? "page" : undefined} className="app-nav-link">{item.label}</Link>)}</nav></details>
+    <div className="app-sidebar-foot"><span>Karachi {district.name} · demonstration</span>{store.offline && <span role="status" className="app-offline">Offline{pending ? ` · ${pending} queued` : ""}</span>}</div>
+  </header>;
+}

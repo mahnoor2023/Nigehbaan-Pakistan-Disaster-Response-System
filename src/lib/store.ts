@@ -8,6 +8,7 @@ import type { FieldReport, Verification, WaterLevel } from "./types";
 // so a report sent from /field shows up on /command in a second tab.
 export type StoreState = {
   area: string | null;
+  districtId: string;
   level: number; // flood severity 0.1 - 1
   offline: boolean; // field app simulates a dead network
   reports: FieldReport[];
@@ -16,7 +17,7 @@ export type StoreState = {
 };
 
 const KEY = "nigehbaan-v1";
-const EMPTY: StoreState = { area: null, level: 0.55, offline: false, reports: [], verifications: {}, shelterOcc: {} };
+const EMPTY: StoreState = { area: null, districtId: "pk-sindh-karachi-malir", level: 0.55, offline: false, reports: [], verifications: {}, shelterOcc: {} };
 const WORSE: WaterLevel[] = ["none", "ankle", "knee", "waist", "above"];
 
 let state: StoreState = EMPTY;
@@ -50,6 +51,7 @@ export function useStore(): StoreState {
 
 export const actions = {
   setArea: (area: string) => set({ ...state, area }),
+  setDistrict: (districtId: string) => set({ ...state, districtId }),
   setLevel: (level: number) => set({ ...state, level }),
   setOffline: (offline: boolean) => set({ ...state, offline }),
 
@@ -85,5 +87,5 @@ export const actions = {
     ...state,
     shelterOcc: { ...state.shelterOcc, [id]: clampOccupancy(n, capacity) },
   }),
-  resetDemo: () => set({ ...EMPTY, area: state.area }),
+  resetDemo: () => set({ ...EMPTY, area: state.area, districtId: state.districtId }),
 };

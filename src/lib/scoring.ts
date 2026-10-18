@@ -59,10 +59,11 @@ export function scoreHousehold(h: Household, st: AreaStats, level: number, ev: E
   const g = h.ground_height_m, d = h.dist_to_waterway_m;
   const eElev = g != null && st.maxH > st.minH ? 1 - (g - st.minH) / (st.maxH - st.minH) : null;
   const eWater = d != null ? clamp01(1 - (d - 50) / 1450) : null;
-  let ex: number | null = eElev != null && eWater != null ? 0.6 * eWater + 0.4 * eElev : (eWater ?? eElev);
+  const scenarioExposure = h.scenario_exposure_est;
+  let ex: number | null = scenarioExposure != null ? clamp01(scenarioExposure) : eElev != null && eWater != null ? 0.6 * eWater + 0.4 * eElev : (eWater ?? eElev);
   if (ex != null && h.floor_est === "ground") ex = Math.min(1, ex + 0.08);
-  if (g == null) missing.push("ground height");
-  if (d == null) missing.push("distance to nala");
+  if (scenarioExposure == null && g == null) missing.push("ground height");
+  if (scenarioExposure == null && d == null) missing.push("distance to nala");
 
   let hazard: number;
   if (ev) {
@@ -72,7 +73,8 @@ export function scoreHousehold(h: Household, st: AreaStats, level: number, ev: E
     hazard = 0.5 * (0.4 + 0.6 * level);
   } else {
     hazard = clamp01((ex - (1 - level) + 0.15) / 0.3) * (0.4 + 0.6 * level);
-    if (d != null && d < 400) why.push({ w: hazard * 40, t: `${Math.round(d)} m from nala/river` });
+    if (scenarioExposure != null) why.push({ w: hazard * 40, t: "Synthetic scenario flood exposure" });
+    else if (d != null && d < 400) why.push({ w: hazard * 40, t: `${Math.round(d)} m from nala/river` });
     else if (eElev != null && eElev > 0.6) why.push({ w: hazard * 35, t: "Low-lying ground" });
     if (h.floor_est === "ground") why.push({ w: hazard * 6, t: "Ground floor" });
   }

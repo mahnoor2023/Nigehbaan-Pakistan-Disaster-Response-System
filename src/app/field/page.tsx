@@ -1,16 +1,23 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import PageShell, { Loading } from "@/components/PageShell";
 import { TierBadge } from "@/components/ui";
 import { WATER_LABEL } from "@/lib/scoring";
+import { hasValidGeographicCoordinates } from "@/lib/geo";
 import { actions } from "@/lib/store";
 import type { WaterLevel } from "@/lib/types";
 import { useModel } from "@/lib/useModel";
+import { useDistrictSelection } from "@/lib/useDistrictSelection";
 
 const LEVELS: WaterLevel[] = ["none", "ankle", "knee", "waist", "above"];
 
 export default function FieldPage() {
-  const m = useModel();
+  return <Suspense fallback={<PageShell title="Field App"><Loading /></PageShell>}><FieldContent /></Suspense>;
+}
+
+function FieldContent() {
+  const { districtId } = useDistrictSelection();
+  const m = useModel(districtId);
   const [hid, setHid] = useState("");
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
@@ -22,24 +29,27 @@ export default function FieldPage() {
 
   if (m.loading || m.error || !m.area) return <PageShell title="Field App"><Loading error={m.error} /></PageShell>;
   const area = m.area;
+  const geographicReporting = area.mapMode !== "none" && area.center !== null;
   const { store } = m;
   const known = m.hs.filter((h) => h.source !== "field_report").sort((a, b) => (a.id < b.id ? -1 : 1));
   const pendingReports = store.reports.filter((r) => !r.synced && r.area === area.id);
-  const pendingVer = Object.values(store.verifications).filter((v) => !v.synced).length;
+  const knownIds = new Set(known.map((household) => household.id));
+  const pendingVer = Object.entries(store.verifications).filter(([householdId, value]) => !value.synced && knownIds.has(householdId)).length;
   const tasks = m.scored.filter((s) => s.score >= 20 && !store.verifications[s.h.id] && !s.hasReport).slice(0, 8);
 
   function pickHousehold(id: string) {
     setHid(id);
     const h = known.find((x) => x.id === id);
-    if (h) { setLat(String(h.lat)); setLon(String(h.lon)); }
+    if (h?.lat != null && h.lon != null) { setLat(String(h.lat)); setLon(String(h.lon)); }
   }
   function gps() {
     if (!navigator.geolocation) return setMsg("GPS not available. Enter coordinates by hand.");
     navigator.geolocation.getCurrentPosition((p) => { setLat(p.coords.latitude.toFixed(6)); setLon(p.coords.longitude.toFixed(6)); }, () => setMsg("GPS denied or unavailable."), { timeout: 8000 });
   }
   function submit() {
+    if (!geographicReporting || !area.center) return setMsg("Coordinate field reporting is unavailable for this non-map synthetic exercise.");
     const la = Number(lat || area.center[0]), lo = Number(lon || area.center[1]);
-    if (!Number.isFinite(la) || !Number.isFinite(lo)) return setMsg("Location is not a valid number.");
+    if (!hasValidGeographicCoordinates({ lat: la, lon: lo })) return setMsg("Location must be a valid latitude and longitude.");
     const { merged } = actions.addReport({ area: area.id, lat: la, lon: lo, householdId: hid || null, water, people: Math.max(1, people || 1), needsMedical: medical, note });
     setMsg(merged ? "Duplicate of a recent report: merged, not counted twice." : store.offline ? "Saved on the phone. Will send when the network is back." : "Sent to Command Center.");
     setNote("");
@@ -57,7 +67,7 @@ export default function FieldPage() {
             </div>
           </section>
 
-          <section className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
+          {!geographicReporting ? <section className="rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-950"><h2 className="font-semibold">Field reporting unavailable</h2><p>This district exercise has no validated marker coordinates. Coordinate reports and GPS controls are intentionally disabled; use Command for the synthetic allocation workflow.</p></section> : <section className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
             <h2 className="font-semibold">New report</h2>
             <label className="block text-sm">Which household?
               <select value={hid} onChange={(e) => pickHousehold(e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
@@ -67,31 +77,31 @@ export default function FieldPage() {
             </label>
             {!hid && (
               <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-sm">
-                <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder={`lat ${area.center[0]}`} className="rounded border border-slate-300 px-2 py-1.5" />
-                <input value={lon} onChange={(e) => setLon(e.target.value)} placeholder={`lon ${area.center[1]}`} className="rounded border border-slate-300 px-2 py-1.5" />
-                <button onClick={gps} className="rounded border border-slate-300 px-2">GPS</button>
+                <input aria-label="Report latitude" value={lat} onChange={(e) => setLat(e.target.value)} placeholder={`lat ${area.center?.[0] ?? ""}`} className="rounded border border-slate-300 px-2 py-1.5" />
+                <input aria-label="Report longitude" value={lon} onChange={(e) => setLon(e.target.value)} placeholder={`lon ${area.center?.[1] ?? ""}`} className="rounded border border-slate-300 px-2 py-1.5" />
+                <button aria-label="Use device GPS for report coordinates" onClick={gps} className="rounded border border-slate-300 px-2">GPS</button>
               </div>
             )}
             <div>
               <div className="text-sm">Water level</div>
               <div className="mt-1 grid grid-cols-5 gap-1">
-                {LEVELS.map((l) => <button key={l} onClick={() => setWater(l)} className={`rounded border px-1 py-2 text-xs font-medium ${water === l ? "border-sky-600 bg-sky-600 text-white" : "border-slate-300 bg-white"}`}>{WATER_LABEL[l]}</button>)}
+                {LEVELS.map((l) => <button key={l} aria-pressed={water === l} onClick={() => setWater(l)} className={`rounded border px-1 py-2 text-xs font-medium ${water === l ? "border-sky-600 bg-sky-600 text-white" : "border-slate-300 bg-white"}`}>{WATER_LABEL[l]}</button>)}
               </div>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <label>People <input type="number" min={1} max={30} value={people} onChange={(e) => setPeople(Number(e.target.value))} className="ml-1 w-16 rounded border border-slate-300 px-2 py-1" /></label>
               <label className="flex items-center gap-1"><input type="checkbox" checked={medical} onChange={(e) => setMedical(e.target.checked)} /> Needs medical help</label>
             </div>
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" />
+            <input aria-label="Report note, optional" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" />
             <button onClick={submit} className="w-full rounded bg-slate-900 py-2 font-medium text-white">Submit report</button>
-            {msg && <p className="rounded bg-sky-50 p-2 text-sm text-sky-800">{msg}</p>}
-          </section>
+            {msg && <p role="status" className="rounded bg-sky-50 p-2 text-sm text-sky-800">{msg}</p>}
+          </section>}
 
-          {store.reports.length > 0 && (
+          {store.reports.some((report) => report.area === area.id) && (
             <section className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
               <h2 className="mb-1 font-semibold">My reports</h2>
               <ul className="divide-y divide-slate-100">
-                {[...store.reports].reverse().slice(0, 8).map((r) => (
+                {store.reports.filter((report) => report.area === area.id).reverse().slice(0, 8).map((r) => (
                   <li key={r.id} className="flex items-center justify-between py-1">
                     <span>{r.householdId ?? "new household"} · {WATER_LABEL[r.water]} · {r.people} ppl{r.count > 1 ? ` · ×${r.count} merged` : ""}</span>
                     <span className={`text-xs font-semibold ${r.synced ? "text-emerald-600" : "text-amber-600"}`}>{r.synced ? "sent" : "queued"}</span>
@@ -103,7 +113,7 @@ export default function FieldPage() {
           )}
         </div>
 
-        <section className="h-fit rounded-lg border border-slate-200 bg-white p-3">
+        {geographicReporting && <section className="h-fit rounded-lg border border-slate-200 bg-white p-3">
           <h2 className="font-semibold">My tasks: verify these first</h2>
           <p className="text-xs text-slate-500">High-priority households whose data is estimated. Your check replaces the guess.</p>
           <ul className="mt-2 divide-y divide-slate-100">
@@ -117,7 +127,7 @@ export default function FieldPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </section>}
       </div>
     </PageShell>
   );
